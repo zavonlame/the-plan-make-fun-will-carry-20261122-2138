@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Write the plan text to /output/entry.txt (or $MAKEFUN_OUTPUT_DIR).
+"""Entry writer for the-plan-make-fun-will-carry-20261122-2138.
 
-make.fun bounty: the-plan-make-fun-will-carry-20261122-2138
-Python 3.13 stdlib only, no network.
+Writes the Day 1 competitor-brief plan to entry.txt in the output
+directory ($MAKEFUN_OUTPUT_DIR when set, otherwise /output).
+Python 3.13 standard library only; no network access.
 """
 
 import os
+import sys
 from pathlib import Path
 
 PLAN = (
@@ -16,17 +18,39 @@ PLAN = (
     "deliverable."
 )
 
+MIN_POINTS = 1
+MAX_POINTS = 280
 
-def main() -> None:
-    # Gate check: the entry must be 1-280 Unicode code points, not only
-    # whitespace. Fail loudly instead of writing an invalid entry.
-    if not 1 <= len(PLAN) <= 280 or not PLAN.strip():
-        raise SystemExit("plan text fails the 1-280 character gate")
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
-    out_path = Path(out_dir) / "entry.txt"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(PLAN, encoding="utf-8")
+
+def check_plan(text: str) -> None:
+    """Enforce the 1-280 Unicode code point limit before any write.
+
+    Length is counted in Unicode code points (len of the str), matching
+    the bounty rule, not in bytes or display width.
+    """
+    count = len(text)
+    if count < MIN_POINTS or count > MAX_POINTS:
+        raise SystemExit(
+            f"plan is {count} code points, outside the "
+            f"{MIN_POINTS}-{MAX_POINTS} limit"
+        )
+    if not text.strip():
+        raise SystemExit("plan text must not be blank")
+
+
+def output_path() -> Path:
+    directory = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
+    return Path(directory) / "entry.txt"
+
+
+def main() -> int:
+    check_plan(PLAN)
+    target = output_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(PLAN, encoding="utf-8")
+    print(f"wrote {len(PLAN)} code points to {target}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
